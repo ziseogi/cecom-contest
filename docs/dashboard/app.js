@@ -171,18 +171,18 @@ function settingsView({ settings }) {
 }
 
 function participationView(data) {
-  const { judges, memberRoster = [], memberBallots = [] } = participationOf(data);
+  const { judges, memberRosterProofs = [], memberBallots = [] } = participationOf(data);
   const address = (role, label) => `<div class="actions"><a class="button secondary" href="${participantLinks[role]}" target="_blank" rel="noopener noreferrer">${label} 열기</a>${button('주소 복사', 'copy-address', '', 'text', role)}</div>`;
   const judgeRows = judges.map(judge => `<tr><td>${esc(judge.name)}</td><td><form data-form="judge-manage"><input type="hidden" name="name" value="${esc(judge.name)}"><div class="actions">${judge.browserId ? '<button class="button secondary small" name="intent" value="reset">브라우저 연결 해제</button>' : ''}<button class="button secondary small" name="intent" value="delete">명단에서 제거</button></div><p class="error-text" role="alert"></p></form></td></tr>`).join('');
   return head('PARTICIPATION', 'participation', '채점과 투표 링크를 공유하면 제출 결과가 자동으로 들어옵니다.')
     + `<section class="panel space"><h2>심사위원 채점</h2><p class="subtle">등록한 이름만 심사 사이트에 표시됩니다. 심사위원이 브라우저를 바꿔야 하는 경우 기존 연결을 해제해 주세요.</p>${address('judge','심사위원 사이트')}
     <form data-form="judge-add"><div class="form-grid field-note"><label>심사위원 이름<input name="name" required maxlength="50"></label></div><p class="error-text" role="alert"></p><button class="button">이름 등록</button></form>
     ${judgeRows ? table(['심사위원','관리'], judgeRows, '심사위원 명단') : ''}</section>
-    <section class="panel"><h2>CECOM 부원 투표</h2><p class="subtle">명단에 등록된 학번으로 한 번 제출할 수 있으며, 여러 작품을 선택할 수 있습니다.</p>${address('vote','부원 투표 사이트')}
-    <p class="subtle field-note">등록 학번 ${memberRoster.length}개 · 학번 투표 제출 ${memberBallots.length}건</p>
-    <form data-form="member-roster"><label>투표 대상 학번 명단<textarea name="roster" rows="5" maxlength="30000" required placeholder="학번을 한 줄에 하나씩 붙여넣으세요"></textarea></label>
-    <p class="subtle field-note">새 명단을 저장하면 기존 허용 명단이 교체됩니다. 이미 제출된 학번 투표는 보존됩니다. 학번 원문은 저장되지 않습니다.</p>
-    <p class="error-text" role="alert"></p><button class="button">학번 명단 저장</button></form></section>`;
+    <section class="panel"><h2>CECOM 부원 투표</h2><p class="subtle">명단에 등록된 이름과 학번이 일치해야 참여할 수 있으며, 학번당 한 번 제출할 수 있습니다.</p>${address('vote','부원 투표 사이트')}
+    <p class="subtle field-note">인증 명단 ${memberRosterProofs.length}명 · 투표 제출 ${memberBallots.length}건</p>
+    <form data-form="member-roster"><label>투표 대상 이름·학번 명단<textarea name="roster" rows="5" maxlength="135000" required placeholder="한 줄에 이름,학번 형식으로 입력하세요"></textarea></label>
+    <p class="subtle field-note">예시 형식은 홍길동,1234567입니다. 스프레드시트에서 이름과 학번 두 열을 붙여넣어도 됩니다. 새 명단을 저장해도 제출된 투표는 보존되며 이름과 학번 원문은 저장하지 않습니다.</p>
+    <p class="error-text" role="alert"></p><button class="button">부원 명단 저장</button></form></section>`;
 }
 
 const views = { overview, teams: teamsView, judging: judgingView, votes: votesView, ranking: rankingView, settings: settingsView, participation: participationView };
@@ -337,7 +337,7 @@ function applyForm(data, form, event) {
       return '심사위원의 브라우저 연결을 해제했습니다.';
     }
     case 'member-roster':
-      return '투표 대상 학번 명단을 저장했습니다.';
+      return '투표 대상 이름·학번 명단을 저장했습니다.';
     case 'settings': {
       const settings = {
         judgingStart: text('judgingStart'), judgingEnd: text('judgingEnd'),
