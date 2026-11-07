@@ -1,4 +1,3 @@
-const apiOrigin = 'https://cecom-arduino-contest-26-vote.calmhinny34.chatgpt.site/';
 const judging = document.body.dataset.role === 'judge';
 const gate = document.querySelector('#gate');
 const entry = document.querySelector('#entry');
@@ -11,15 +10,15 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({
 const entryError = document.querySelector('#entry-error');
 const entryHelp = document.querySelector('#entry-help');
 const retry = document.querySelector('#entry-reload');
-let judgeName;
+let voterIdentity;
 let view;
 let busy = false;
 let toastTimer;
 
 async function api(action, extra = {}) {
-  const res = await fetch(new URL('./api/pages-entry', apiOrigin), {
+  const res = await fetch('https://cecom-arduino-contest-26-vote.calmhinny34.chatgpt.site/api/pages-entry', {
     method: 'POST', credentials: 'omit', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, judgeName, ...extra }),
+    body: JSON.stringify({ action, ...extra }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error);
@@ -41,7 +40,7 @@ function voteCards() {
   const cards = view.teams.map(team => `<article class="panel">${work(team)}${canVote
     ? `<label class="pick"><input type="checkbox" name="team" value="${esc(team.id)}">이 작품에 투표</label>`
     : view.selected?.includes(team.id) ? '<p class="pick"><span class="state">내가 투표한 작품</span></p>' : ''}</article>`).join('');
-  return `<form id="ballot"><div class="grid">${cards}</div>${canVote ? '<div class="vote-action"><label for="student-id">학번</label><div class="gate-row"><input id="student-id" name="studentId" type="password" inputmode="numeric" pattern="[0-9]{7,12}" minlength="7" maxlength="12" autocomplete="off" required><button>선택한 작품에 투표하기</button></div><p class="muted">등록된 학번당 한 번 제출할 수 있습니다. 여러 작품을 선택할 수 있으며, 학번 원문은 저장되지 않습니다.</p><p class="error" role="alert"></p></div>' : ''}</form>`;
+  return `<form id="ballot"><div class="grid">${cards}</div>${canVote ? '<div class="vote-action"><button>선택한 작품에 투표하기</button><p class="muted">등록된 학번당 한 번 제출할 수 있으며, 여러 작품을 선택할 수 있습니다.</p><p class="error" role="alert"></p></div>' : ''}</form>`;
 }
 
 function render() {
@@ -64,48 +63,29 @@ function notify(message) {
   toastTimer = setTimeout(() => { notice.textContent = ''; }, 4200);
 }
 
-async function initialize() {
-  if (busy) return;
-  busy = true;
+function initialize() {
   entry.hidden = false;
   content.hidden = true;
-  gate.hidden = true;
+  gate.hidden = false;
   retry.hidden = true;
-  entryError.textContent = '';
-  entryHelp.textContent = '참여 화면을 불러오는 중입니다.';
-  try {
-    if (judging) {
-      const { judges } = await api('list');
-      gate.elements.judgeName.innerHTML = '<option value="">이름을 선택해 주세요</option>'
-        + judges.map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join('');
-      gate.hidden = !judges.length;
-      retry.hidden = Boolean(judges.length);
-      entryHelp.textContent = judges.length ? '운영진이 등록한 이름 중 본인의 이름을 선택해 주세요.'
-        : '등록된 심사위원이 없습니다. 운영진이 이름을 등록하면 다시 불러와 주세요.';
-    } else {
-      view = await api('open');
-      render();
-    }
-  } catch (problem) {
-    entryHelp.textContent = '참여 화면을 불러오지 못했습니다.';
-    entryError.textContent = problem.message;
-    retry.hidden = false;
-  } finally {
-    busy = false;
-  }
+  entryHelp.textContent = '등록된 이름과 학번을 입력하면 작품을 볼 수 있습니다.';
 }
 
-retry.addEventListener('click', initialize);
 gate.addEventListener('submit', async event => {
   event.preventDefault();
   if (busy) return;
-  judgeName = gate.elements.judgeName.value;
+  const identity = {
+    voterName: gate.elements.voterName.value.trim(),
+    studentId: gate.elements.studentId.value.trim(),
+  };
   entryError.textContent = '';
   busy = true;
   const button = gate.querySelector('button');
   button.disabled = true;
   try {
-    view = await api('open');
+    view = await api('open', identity);
+    voterIdentity = identity;
+    gate.reset();
     render();
     const heading = content.querySelector('strong');
     heading.setAttribute('tabindex', '-1');
@@ -126,7 +106,7 @@ content.addEventListener('submit', async event => {
   const extra = judging ? {
     teamId: form.dataset.judge,
     scores: view.rubric.map((_, i) => Number(values.get('score' + i))),
-  } : { teamIds: values.getAll('team'), studentId: values.get('studentId') };
+  } : { teamIds: values.getAll('team'), ...voterIdentity };
   const error = form.querySelector('.error');
   error.textContent = '';
   if (!judging && !extra.teamIds.length) {
@@ -155,16 +135,11 @@ content.addEventListener('submit', async event => {
 });
 content.addEventListener('click', async event => {
   if (busy) return;
-  if (event.target.id === 'change-judge') {
-    judgeName = undefined;
-    await initialize();
-    return;
-  }
   if (event.target.id !== 'reload') return;
   busy = true;
   event.target.disabled = true;
   try {
-    view = await api('open');
+    view = await api('open', voterIdentity);
     render();
   } catch (problem) {
     notify(problem.message);

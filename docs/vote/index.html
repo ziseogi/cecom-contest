@@ -16,8 +16,14 @@
     <section class="hero"><p class="eyebrow">ARDUINO CONTEST / CECOM</p><h1>아두이노로<br>쓸데없는 물건 만들기</h1><p>기술력은 있는데, 쓸모는 없다!</p></section>
     <section id="entry" class="panel">
       <h2 id="entry-title">부원 투표 참여</h2>
-      <p id="entry-help" class="muted">참여 화면을 불러오는 중입니다.</p>
-      <form id="gate" hidden><label for="judge-name">심사위원 이름</label><div class="gate-row"><select id="judge-name" name="judgeName" required></select><button>작품 보기 <span aria-hidden="true">→</span></button></div></form>
+      <p id="entry-help" class="muted">부원 인증을 준비하고 있습니다.</p>
+      <form id="gate" method="post" autocomplete="off" hidden>
+        <label for="voter-name">이름</label>
+        <div class="gate-row"><input id="voter-name" name="voterName" type="text" maxlength="50" required></div>
+        <label for="student-id">학번</label>
+        <div class="gate-row"><input id="student-id" name="studentId" type="password" inputmode="numeric" pattern="[0-9]{7,12}" minlength="7" maxlength="12" required></div>
+        <div class="vote-action"><button>인증하고 작품 보기 <span aria-hidden="true">→</span></button></div>
+      </form>
       <button id="entry-reload" type="button" class="secondary" hidden>다시 불러오기</button>
       <p id="entry-error" class="error" role="alert"></p>
     </section>
