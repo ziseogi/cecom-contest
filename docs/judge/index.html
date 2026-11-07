@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CECOM 아두이노로 쓸데없는 물건 만들기 대회 심사위원 채점">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src https://cecom-arduino-contest-26-judge.calmhinny34.chatgpt.site; base-uri 'none'; form-action 'none'">
+  <title>심사위원 채점 · CECOM 아두이노 대회</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body data-role="judge">
+  <header><div class="bar"><div class="brand"><span class="chip" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 2v3m6-3v3M9 19v3m6-3v3M2 9h3m-3 6h3m14-6h3m-3 6h3"/></svg></span><div><strong>CECOM</strong><small>2026 · 2학기 대회</small></div></div><span class="tag">심사위원 채점</span></div></header>
+  <main>
+    <section class="hero"><p class="eyebrow">ARDUINO CONTEST / CECOM</p><h1>아두이노로<br>쓸데없는 물건 만들기</h1><p>기술력은 있는데, 쓸모는 없다!</p></section>
+    <section id="entry" class="panel">
+      <h2 id="entry-title">심사위원 채점 참여</h2>
+      <p id="entry-help" class="muted">참여 화면을 불러오는 중입니다.</p>
+      <form id="gate" hidden><label for="judge-name">심사위원 이름</label><div class="gate-row"><select id="judge-name" name="judgeName" required></select><button>작품 보기 <span aria-hidden="true">→</span></button></div></form>
+      <button id="entry-reload" type="button" class="secondary" hidden>다시 불러오기</button>
+      <p id="entry-error" class="error" role="alert"></p>
+    </section>
+    <div id="content" hidden></div>
+    <div id="notice" role="status" aria-live="polite"></div>
+  </main>
+</body>
+</html>
