@@ -60,8 +60,16 @@ export function createDashboardBridge(onConnect, onDisconnect) {
       popup = window.open(sitesOrigin + '/github-connect', '_blank', 'popup,width=540,height=470');
       return Boolean(popup);
     },
-    request(options = {}) {
-      if (!connected || popup?.closed) return Promise.reject(new Error('관리자 인증 창을 열어 주세요.'));
+    async request(options = {}) {
+      let pdfBytes;
+      if (options.pdf) {
+        try {
+          pdfBytes = await options.pdf.arrayBuffer();
+        } catch {
+          throw new Error('선택한 PDF를 읽을 수 없습니다. 파일을 다시 선택해 주세요.');
+        }
+      }
+      if (!connected || popup?.closed) throw new Error('관리자 인증 창을 열어 주세요.');
       return new Promise((resolve, reject) => {
         const id = ++nextId;
         const timer = setTimeout(() => {
@@ -69,7 +77,7 @@ export function createDashboardBridge(onConnect, onDisconnect) {
           reject(new Error('대시보드 연결 시간이 초과되었습니다. 다시 시도해 주세요.'));
         }, options.pdf ? 90000 : 15000);
         pending.set(id, { resolve, reject, timer });
-        channel.postMessage({ id, method: options.method ?? 'GET', body: options.body, pdf: options.pdf });
+        channel.postMessage({ id, method: options.method ?? 'GET', body: options.body, pdfBytes }, pdfBytes ? [pdfBytes] : []);
       });
     },
   };

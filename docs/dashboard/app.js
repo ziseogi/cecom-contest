@@ -1,4 +1,4 @@
-import { createDashboardBridge } from './bridge.js?v=797fb9a51397';
+import { createDashboardBridge } from './bridge.js?v=17c8f364ed5d';
 import { isLegacyReview, judgeAverage, judgeCount, reviewTotal, rubric, tally, talliedTeams, voteClosed } from './scores.js';
 
 const labels = {
