@@ -474,7 +474,6 @@ function showSignIn(message = '운영진 계정으로 연결한 뒤 대시보드
     <p role="status">${esc(message)}</p>
     <p>인증 창에서 <strong>이 탭에 대시보드 연결</strong>을 누르고, 운영 중에는 창을 열어두세요.</p>
     <button id="open-bridge" type="button" class="button">관리자 인증 창 열기</button>
-    <a class="button secondary" href="https://cecom-arduino-contest-26.calmhinny34.chatgpt.site/" target="_blank" rel="noopener noreferrer">기존 대시보드 열기</a>
   </section>`;
 }
 
