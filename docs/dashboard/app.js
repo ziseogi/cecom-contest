@@ -137,11 +137,28 @@ function votesView(data) {
   const teams = talliedTeams(data);
   const rows = teams.map(team => `<tr><td>${teamName(team)}</td><td class="numeric">${integer(team.votes ?? 0)}</td></tr>`).join('');
   const { votes } = tally(teams, settings.judgeCount);
+  const ballots = participationOf(data).memberBallots ?? [];
+  const teamsById = new Map(data.teams.map(team => [team.id, team]));
+  const ballotRows = ballots.map(ballot => {
+    const choices = ballot.teamIds.map(id => {
+      const team = teamsById.get(id);
+      return team ? esc(team.work ? team.name + ' · ' + team.work : team.name) : '삭제된 작품';
+    });
+    const voter = ballot.voterName ? esc(ballot.voterName) + ' <small>학번 끝 4자리 · ' + esc(ballot.studentSuffix) + '</small>' : '이름 미연결';
+    return `<tr><td>${voter}</td><td><ul><li>${choices.join('</li><li>')}</li></ul></td>
+      <td><form data-form="cancel-member-vote" data-id="${esc(ballot.memberKey)}">
+        <button class="button secondary small" type="submit">제출 취소</button><p class="error-text" role="alert"></p>
+      </form></td></tr>`;
+  }).join('');
+  const unidentified = ballots.some(ballot => !ballot.voterName);
   return head('MEMBER VOTE · 20%', 'votes', `투표 마감 · ${date(settings.votingEnd)} (KST)`, link('참여 링크·심사위원','participation','arrow'))
     + (rows ? `<div class="summary"><strong>사이트 득표 합계 ${integer(votes)}표</strong></div>
     <section class="panel"><h2>팀별 득표수</h2><p class="subtle">부원 투표 사이트에 제출된 표가 자동으로 집계됩니다.</p>
     ${table(['팀 / 작품', '득표수'], rows, '팀별 득표수')}</section>`
-    : `<div class="panel">${empty('vote','집계할 팀이 없습니다.','팀을 추가하면 각 팀의 득표수를 확인할 수 있습니다.', link('팀 및 제출물로 이동','teams','arrow','secondary'))}</div>`);
+    : `<div class="panel">${empty('vote','집계할 팀이 없습니다.','팀을 추가하면 각 팀의 득표수를 확인할 수 있습니다.', link('팀 및 제출물로 이동','teams','arrow','secondary'))}</div>`)
+    + `<section class="panel space"><h2>부원별 투표 내역</h2><p class="subtle">운영진 화면에 부원 이름, 학번 끝 4자리, 선택한 작품을 표시합니다.</p>
+    ${unidentified ? '<p class="subtle">이름이 연결되지 않은 기존 투표는 같은 이름·학번 명단을 다시 저장하면 연결할 수 있습니다.</p>' : ''}
+    ${ballotRows ? table(['부원', '선택한 작품', '관리'], ballotRows, '부원별 투표 내역') : '<p class="subtle">제출된 부원 투표가 없습니다.</p>'}</section>`;
 }
 
 function rankingView(data) {
@@ -181,7 +198,7 @@ function participationView(data) {
     <section class="panel"><h2>CECOM 부원 투표</h2><p class="subtle">명단에 등록된 이름과 학번이 일치해야 참여할 수 있으며, 학번당 한 번 제출할 수 있습니다.</p>${address('vote','부원 투표 사이트')}
     <p class="subtle field-note">인증 명단 ${memberRosterProofs.length}명 · 투표 제출 ${memberBallots.length}건</p>
     <form data-form="member-roster"><label>투표 대상 이름·학번 명단<textarea name="roster" rows="5" maxlength="135000" required placeholder="한 줄에 이름,학번 형식으로 입력하세요"></textarea></label>
-    <p class="subtle field-note">예시 형식은 홍길동,1234567입니다. 스프레드시트에서 이름과 학번 두 열을 붙여넣어도 됩니다. 새 명단을 저장해도 제출된 투표는 보존되며 이름과 학번 원문은 저장하지 않습니다.</p>
+    <p class="subtle field-note">예시 형식은 홍길동,1234567입니다. 스프레드시트에서 이름과 학번 두 열을 붙여넣어도 됩니다. 새 명단을 저장해도 제출된 투표는 보존됩니다. 제출한 이름과 학번 끝 4자리는 운영진에게 표시되며, 학번 전체는 저장하지 않습니다.</p>
     <p class="error-text" role="alert"></p><button class="button">부원 명단 저장</button></form></section>`;
 }
 
@@ -335,6 +352,16 @@ function applyForm(data, form, event) {
       }
       delete judge.browserId;
       return '심사위원의 브라우저 연결을 해제했습니다.';
+    }
+    case 'cancel-member-vote': {
+      const participation = participationOf(data);
+      const ballots = participation.memberBallots ?? [];
+      const index = ballots.findIndex(ballot => ballot.memberKey === form.dataset.id);
+      if (index === -1) throw new Error('취소할 투표를 찾을 수 없습니다.');
+      const label = ballots[index].voterName ? ballots[index].voterName + ' 님의' : '이 부원의';
+      if (!confirm(label + ' 투표를 취소할까요? 선택한 작품의 표가 집계에서 빠집니다.')) return false;
+      ballots.splice(index, 1);
+      return '부원 투표를 취소했습니다.';
     }
     case 'member-roster':
       return '투표 대상 이름·학번 명단을 저장했습니다.';
