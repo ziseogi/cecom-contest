@@ -67,9 +67,9 @@ export function createDashboardBridge(onConnect, onDisconnect) {
         const timer = setTimeout(() => {
           pending.delete(id);
           reject(new Error('대시보드 연결 시간이 초과되었습니다. 다시 시도해 주세요.'));
-        }, 15000);
+        }, options.pdf ? 90000 : 15000);
         pending.set(id, { resolve, reject, timer });
-        channel.postMessage({ id, method: options.method ?? 'GET', body: options.body });
+        channel.postMessage({ id, method: options.method ?? 'GET', body: options.body, pdf: options.pdf });
       });
     },
   };

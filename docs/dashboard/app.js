@@ -1,4 +1,4 @@
-import { createDashboardBridge } from './bridge.js';
+import { createDashboardBridge } from './bridge.js?v=797fb9a51397';
 import { isLegacyReview, judgeAverage, judgeCount, reviewTotal, rubric, tally, talliedTeams, voteClosed } from './scores.js';
 
 const labels = {
@@ -109,7 +109,7 @@ function overview(data) {
 function teamsView({ teams }) {
   const cards = teams.map(team => `<article class="panel team-card"><div class="topline"><div class="badges">${progressBadge(team)}${submitBadge(team)}</div>${editTeam(team)}</div>
     <h2>${esc(team.name)}</h2><p class="subtle">${esc(team.work || '작품명 미등록')}</p><div class="actions">${fileLinks(team)}</div></article>`).join('');
-  return head('SUBMISSIONS', 'teams', '참가 팀의 제작 상태와 작품 설명서·시연 영상 링크를 관리합니다.', addTeam())
+  return head('SUBMISSIONS', 'teams', '참가 팀의 제작 상태, 작품 설명서 PDF, 시연 영상 링크를 관리합니다.', addTeam())
     + (cards ? `<div class="team-grid">${cards}</div>` : `<div class="panel">${empty('folder','아직 등록된 팀이 없습니다.','팀 이름부터 등록하고 작품 정보는 나중에 추가할 수 있습니다.', addTeam())}</div>`);
 }
 
@@ -265,12 +265,14 @@ function showDialog(title, content) {
 function showTeam(team) {
   const options = Object.entries(progress).map(([key, label]) =>
     `<option value="${key}" ${team?.progress === key ? 'selected' : ''}>${label}</option>`).join('');
-  showDialog(team ? '팀 및 제출물 편집' : '참가 팀 추가', `<p class="dialog-note">설명서와 영상 링크가 모두 등록되면 제출 완료로 표시됩니다.</p>
+  showDialog(team ? '팀 및 제출물 편집' : '참가 팀 추가', `<p class="dialog-note">설명서와 시연 영상 링크가 모두 등록되면 제출 완료로 표시됩니다.</p>
     <form data-form="team" data-id="${esc(team?.id)}"><div class="form-grid">
     <label>팀 이름<input name="name" required maxlength="60" value="${esc(team?.name)}" autofocus></label>
     <label>제작 상태<select name="progress">${options}</select></label>
     <label class="full">작품명<input name="work" maxlength="100" value="${esc(team?.work)}"></label>
-    <label class="full">작품 설명서 링크<input name="doc" type="url" maxlength="2048" placeholder="https://…" value="${esc(team?.doc)}"></label>
+    <label class="full">작품 설명서 PDF 첨부<input name="docFile" type="file" accept=".pdf,application/pdf"><small>최대 20 MB</small></label>
+    ${team?.doc ? `<div class="full"><a class="button secondary small" href="${esc(team.doc)}" target="_blank" rel="noopener noreferrer">현재 작품 설명서 열기</a>
+    <label><span><input name="removeDoc" type="checkbox"> 등록된 설명서 제거</span></label></div>` : ''}
     <label class="full">시연 영상 링크<input name="video" type="url" maxlength="2048" placeholder="https://…" value="${esc(team?.video)}"></label></div>
     <p class="error-text" role="alert"></p><div class="form-actions">${team ? '<button class="button danger" name="intent" value="delete" formnovalidate>팀 삭제</button>' : ''}${button('취소','close','','secondary')}<button class="button">저장</button></div></form>`);
 }
@@ -298,9 +300,9 @@ function applyForm(data, form, event) {
         data.teams = data.teams.filter(item => item.id !== team.id);
         return '팀을 삭제했습니다.';
       }
-      const fields = { name: text('name'), work: text('work'), progress: text('progress'), doc: text('doc'), video: text('video') };
+      const fields = { name: text('name'), work: text('work'), progress: text('progress'), doc: values.has('removeDoc') ? '' : team?.doc ?? '', video: text('video') };
       if (!fields.name) throw new Error('팀 이름을 입력해 주세요.');
-      if ([fields.doc, fields.video].some(url => url && !/^https?:\/\//i.test(url))) {
+      if (fields.video && !/^https?:\/\//i.test(fields.video)) {
         throw new Error('링크는 https:// 또는 http://로 시작해야 합니다.');
       }
       if (team) Object.assign(team, fields);
@@ -387,8 +389,11 @@ document.addEventListener('submit', async event => {
   const error = form.querySelector('.error-text');
   error.textContent = '';
   let message;
+  const pdf = form.dataset.form === 'team' && event.submitter?.value !== 'delete'
+    ? form.elements.docFile.files[0] : undefined;
   const data = structuredClone(state.data);
   try {
+    if (pdf && pdf.size > 20 * 1024 * 1024) throw new Error('PDF는 최대 20 MB까지 첨부할 수 있습니다.');
     message = applyForm(data, form, event);
     if (!message) return;
   } catch (problem) {
@@ -399,12 +404,14 @@ document.addEventListener('submit', async event => {
   refresh.disabled = true;
   const controls = [...form.elements];
   controls.forEach(control => control.disabled = true);
-  connection('저장 중');
+  connection(pdf ? 'PDF 업로드 중' : '저장 중');
+  const body = JSON.stringify({
+    rubricVersion: 6, revision: state.revision, data,
+    rosterText: form.dataset.form === 'member-roster' ? form.elements.roster.value : undefined,
+    pdfTeamId: pdf ? form.dataset.id || data.teams.at(-1)?.id : undefined,
+  });
   try {
-    const res = await bridge.request({
-      method: 'PUT',
-      body: JSON.stringify({ rubricVersion: 6, revision: state.revision, data, rosterText: form.dataset.form === 'member-roster' ? form.elements.roster.value : undefined }),
-    });
+    const res = await bridge.request({ method: 'PUT', body, pdf });
     const result = await res.json();
     if (!res.ok) throw new Error(result.error);
     state = result;

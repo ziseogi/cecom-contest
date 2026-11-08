@@ -14,3 +14,5 @@ dialog{border:1px solid var(--line);border-radius:17px;padding:23px;width:min(54
 @media(max-width:575px){main{padding-inline:13px}.top{padding-inline:14px}.hero{padding:21px 17px;min-height:207px}.hero-art{right:-23px;top:67%;opacity:.29;width:41%}.hero .desc{font-size:12px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:11px 0}.metric{padding:10px}.metric strong{font-size:23px}.overview-bottom,.form-grid{grid-template-columns:1fr}.rubric{grid-template-columns:repeat(2,minmax(0,1fr))}.panel{padding:14px}.view-head h1{font-size:27px}.view-head{align-items:flex-start}.hero h1{font-size:31px}.button{white-space:normal}}
 
 textarea{display:block;width:100%;resize:vertical;min-height:90px;padding:9px 10px;border:1px solid #c7d2c9;border-radius:8px;font:inherit;color:inherit;background:white}
+
+input[name="removeDoc"]{width:auto;min-height:0;vertical-align:middle;margin:5px 4px 0 0}
